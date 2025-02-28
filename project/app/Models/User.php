@@ -27,6 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone',
         'address',
         'role',
+        'status',
     ];
 
     /**
@@ -46,25 +47,38 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-       // 'password' => 'hashed',
         'birth_date' => 'date',
     ];
 
-    // Helper method to check if user is candidate
+    // Role helper methods
     public function isCandidate()
     {
         return $this->role === 'candidate';
     }
 
-    // Helper method to check if user is staff
     public function isStaff()
     {
         return $this->role === 'staff';
     }
 
-    // Helper method to check if user is admin
     public function isAdmin()
     {
         return $this->role === 'admin';
+    }
+
+    // Status helper methods
+    public function isPending()
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
+
+    public function isRejected()
+    {
+        return $this->status === 'rejected';
     }
 }

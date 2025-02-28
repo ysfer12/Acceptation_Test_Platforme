@@ -15,10 +15,44 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                </div>
-            </div>
 
-            <!-- Settings Dropdown -->
+                    @if(auth()->user() && auth()->user()->isAdmin())
+                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                            {{ __('Admin Dashboard') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('admin.candidates')" :active="request()->routeIs('admin.candidates')">
+                            {{ __('Candidats') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('admin.appointments')" :active="request()->routeIs('admin.appointments')">
+                            {{ __('Rendez-vous') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('admin.quizzes')" :active="request()->routeIs('admin.quizzes')">
+                            {{ __('Quiz') }}
+                        </x-nav-link>
+                    @endif
+
+                    @if(auth()->user() && auth()->user()->isCandidate())
+                        @php
+                            $completedQuiz = \App\Models\UserQuiz::where('user_id', auth()->id())
+                                ->whereNotNull('completed_at')
+                                ->first();
+                        @endphp
+
+                        @if($completedQuiz)
+                            <x-nav-link :href="route('assessment.status')" :active="request()->routeIs('assessment.status')">
+                                {{ __('Assessment Status') }}
+                            </x-nav-link>
+                        @else
+                            <x-nav-link :href="route('quiz.index')" :active="request()->routeIs('quiz.*')">
+                                {{ __('Take Quiz') }}
+                            </x-nav-link>
+                        @endif
+                    @endif
+                </div>
+                <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ml-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
@@ -88,5 +122,6 @@
                 </form>
             </div>
         </div>
+    </div>
     </div>
 </nav>

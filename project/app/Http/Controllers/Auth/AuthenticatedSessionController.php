@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Providers\RouteServiceProvider;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -32,9 +34,24 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(RouteServiceProvider::HOME);
-    }
+        // Redirect based on user role
+        $user = Auth::user();
 
+        if ($user->isAdmin()) {
+            return redirect()->intended('/admin/dashboard');
+        } elseif ($user->isStaff()) {
+            return redirect()->intended('/staff/dashboard');
+        } else {
+            // For candidates, check status
+            if ($user->isPending()) {
+                return redirect()->route('status.pending');
+            } elseif ($user->isRejected()) {
+                return redirect()->route('status.rejected');
+            }
+
+            return redirect()->intended(RouteServiceProvider::HOME);
+        }
+    }
     /**
      * Destroy an authenticated session.
      *

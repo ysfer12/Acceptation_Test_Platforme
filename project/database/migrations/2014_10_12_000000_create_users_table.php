@@ -26,9 +26,10 @@ class CreateUsersTable extends Migration
             $table->text('address')->nullable();
             $table->string('id_card_path')->nullable();
             $table->enum('role', ['candidate', 'staff', 'admin'])->default('candidate');
+            $table->enum('status', ['pending', 'active', 'rejected'])->default('pending');
             $table->rememberToken();
             $table->timestamps();
-        })->renameTo('users');
+        });
     }
     /**
      * Reverse the migrations.

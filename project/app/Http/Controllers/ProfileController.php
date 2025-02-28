@@ -70,9 +70,25 @@ class ProfileController extends Controller
             $path = $request->file('id_card')->store('id_cards', 'public');
             $user->id_card_path = $path;
             $user->save();
+
+            // Check if all required fields are filled
+            $requiredFields = ['first_name', 'last_name', 'birth_date', 'phone', 'address', 'id_card_path'];
+            $profileComplete = true;
+
+            foreach ($requiredFields as $field) {
+                if (empty($user->$field)) {
+                    $profileComplete = false;
+                    break;
+                }
+            }
+
+            // If profile is complete, redirect to quiz
+            if ($profileComplete) {
+                return redirect()->route('quiz.index')
+                    ->with('message', 'Your profile is complete. You can now take the quiz!');
+            }
         }
 
-        return Redirect::route('profile.edit')
-            ->with('status', 'id-card-uploaded');
+        return Redirect::route('profile.edit')->with('status', 'id-card-uploaded');
     }
 }
