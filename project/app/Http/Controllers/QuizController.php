@@ -14,20 +14,9 @@ class QuizController extends Controller
      */
     public function index()
     {
-        // Get the active quiz
+        // Get the active quiz (set by admin)
         $quiz = Quiz::where('is_active', true)->first();
-
-        // If no quiz exists, create a default one for demonstration
-        if (!$quiz) {
-            $quiz = Quiz::create([
-                'title' => 'Candidate Assessment',
-                'description' => 'This quiz assesses your skills and knowledge for the position.',
-                'time_limit' => 30,
-                'passing_score' => 70,
-                'is_active' => true
-            ]);
-        }
-
+    
         // Check if user has already taken the quiz
         $userQuiz = null;
         if ($quiz) {
@@ -36,7 +25,7 @@ class QuizController extends Controller
                 'quiz_id' => $quiz->id
             ])->first();
         }
-
+    
         return view('quiz.index', compact('quiz', 'userQuiz'));
     }
 
@@ -81,24 +70,23 @@ class QuizController extends Controller
         if ($userQuiz->user_id !== auth()->id()) {
             abort(403);
         }
-
+    
         // If already completed, redirect to results
         if ($userQuiz->completed_at) {
             return redirect()->route('quiz.results', $userQuiz->id);
         }
-
+    
         $quiz = $userQuiz->quiz;
-
-        // For demo purposes, create some questions if none exist
-        if ($quiz->questions()->count() === 0) {
-            $this->createDemoQuestions($quiz);
-        }
-
         $questions = $quiz->questions;
-
+    
+        // If the quiz has no questions, redirect back with an error
+        if ($questions->count() === 0) {
+            return redirect()->route('quiz.index')
+                ->with('error', 'This quiz has no questions yet. Please try again later.');
+        }
+    
         return view('quiz.take', compact('userQuiz', 'quiz', 'questions'));
     }
-
     /**
      * Submit quiz answers
      */
@@ -111,31 +99,45 @@ class QuizController extends Controller
         if ($userQuiz->user_id !== auth()->id()) {
             abort(403);
         }
-
+    
         // If already completed, redirect to results
         if ($userQuiz->completed_at) {
             return redirect()->route('quiz.results', $userQuiz->id);
         }
-
+    
         $quiz = $userQuiz->quiz;
         $questions = $quiz->questions;
-
+        
         // Get answers from the form
         $answers = $request->input('answers', []);
-
-        // Calculate score (simplified for demo)
-        $score = 85; // Demo score
-
+        
+        // Calculate score based on correct answers
+        $totalPoints = $questions->sum('points');
+        $earnedPoints = 0;
+        
+        foreach ($questions as $question) {
+            $questionId = $question->id;
+            $userAnswer = $answers[$questionId] ?? null;
+            
+            if ($userAnswer === $question->correct_answer) {
+                $earnedPoints += $question->points;
+            }
+        }
+        
+        // Calculate percentage score
+        $score = $totalPoints > 0 ? round(($earnedPoints / $totalPoints) * 100) : 0;
+        
         // Update user quiz
         $userQuiz->score = $score;
         $userQuiz->answers = json_encode($answers);
         $userQuiz->completed_at = now();
         $userQuiz->passed = $score >= $quiz->passing_score;
+        $userQuiz->time_taken = now()->diffInSeconds($userQuiz->started_at);
         $userQuiz->save();
-
+        
         return redirect()->route('quiz.results', $userQuiz->id);
     }
-    /**
+        /**
      * Display quiz results
      */
     public function results(UserQuiz $userQuiz)
@@ -157,51 +159,6 @@ class QuizController extends Controller
     /**
      * Create demo questions for a quiz
      */
-    private function createDemoQuestions($quiz)
-    {
-        // Create demo questions for development/testing
-        $questions = [
-            [
-                'question_text' => 'What is Laravel?',
-                'options' => json_encode([
-                    'A' => 'A JavaScript framework',
-                    'B' => 'A PHP framework',
-                    'C' => 'A database system',
-                    'D' => 'A programming language'
-                ]),
-                'correct_answer' => 'B',
-                'points' => 1
-            ],
-            [
-                'question_text' => 'Which of the following is not a Laravel Artisan command?',
-                'options' => json_encode([
-                    'A' => 'php artisan migrate',
-                    'B' => 'php artisan serve',
-                    'C' => 'php artisan compile',
-                    'D' => 'php artisan tinker'
-                ]),
-                'correct_answer' => 'C',
-                'points' => 1
-            ],
-            [
-                'question_text' => 'What does MVC stand for?',
-                'options' => json_encode([
-                    'A' => 'Model View Controller',
-                    'B' => 'Most Valuable Code',
-                    'C' => 'Multiple Virtual Connections',
-                    'D' => 'Model Virtual Control'
-                ]),
-                'correct_answer' => 'A',
-                'points' => 1
-            ]
-        ];
-
-        foreach ($questions as $q) {
-            $quiz->questions()->create($q);
-        }
-    }
-
-
     public function create()
     {
         return view('admin.quizzes.create');

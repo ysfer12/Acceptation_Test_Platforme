@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Quiz') }}
+            {{ __('Online Assessment') }}
         </h2>
     </x-slot>
 
@@ -31,7 +31,8 @@
                                 <ul class="list-disc pl-5 space-y-1">
                                     <li>Time Limit: {{ $quiz->time_limit }} minutes</li>
                                     <li>Passing Score: {{ $quiz->passing_score }}%</li>
-                                    <li>Number of Questions: {{ $quiz->questions->count() ?: 'Loading...' }}</li>
+                                    <li>Number of Questions: {{ $quiz->questions->count() }}</li>
+                                    <li>Total Points: {{ $quiz->questions->sum('points') }}</li>
                                 </ul>
                             </div>
 
@@ -40,12 +41,26 @@
                                     <div class="bg-{{ $userQuiz->passed ? 'green' : 'red' }}-100 border-l-4 border-{{ $userQuiz->passed ? 'green' : 'red' }}-500 text-{{ $userQuiz->passed ? 'green' : 'red' }}-700 p-4">
                                         <p class="font-bold">{{ $userQuiz->passed ? 'Quiz Passed!' : 'Quiz Failed!' }}</p>
                                         <p>Your score: {{ $userQuiz->score }}%</p>
+                                        <p>Completed on: {{ $userQuiz->completed_at->format('F j, Y, g:i a') }}</p>
                                     </div>
 
-                                    <div class="mt-4">
+                                    <div class="mt-4 flex space-x-3">
                                         <a href="{{ route('quiz.results', $userQuiz->id) }}" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                                             View Results
                                         </a>
+
+                                        @if(!$userQuiz->passed && $userQuiz->completed_at->diffInHours(now()) >= 24)
+                                            <form method="POST" action="{{ route('quiz.start', $quiz) }}">
+                                                @csrf
+                                                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                                    Retake Quiz
+                                                </button>
+                                            </form>
+                                        @elseif(!$userQuiz->passed)
+                                            <div class="px-4 py-2 bg-gray-200 text-gray-700 rounded">
+                                                Can retry after {{ 24 - $userQuiz->completed_at->diffInHours(now()) }} more hours
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             @else
@@ -55,15 +70,22 @@
                                         <li>Once started, you cannot pause the quiz.</li>
                                         <li>Ensure you have a stable internet connection.</li>
                                         <li>The quiz will auto-submit when time expires.</li>
+                                        <li>You need to score at least {{ $quiz->passing_score }}% to pass.</li>
                                     </ul>
                                 </div>
 
-                                <form method="POST" action="{{ route('quiz.start', $quiz) }}">
-                                    @csrf
-                                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                                        Start Quiz
-                                    </button>
-                                </form>
+                                @if($quiz->questions->count() > 0)
+                                    <form method="POST" action="{{ route('quiz.start', $quiz) }}">
+                                        @csrf
+                                        <button type="submit" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                            Start Quiz
+                                        </button>
+                                    </form>
+                                @else
+                                    <div class="bg-red-100 p-4 border-l-4 border-red-500 text-red-700">
+                                        <p>This quiz has no questions available yet. Please check back later.</p>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                     @else
@@ -72,7 +94,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <h3 class="mt-2 text-xl font-medium text-gray-900">No quizzes available</h3>
-                            <p class="mt-1 text-sm text-gray-500">Please check back later for available quizzes.</p>
+                            <p class="mt-1 text-sm text-gray-500">No active quiz is currently available. Please check back later.</p>
                         </div>
                     @endif
                 </div>

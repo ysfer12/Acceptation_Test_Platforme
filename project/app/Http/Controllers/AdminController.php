@@ -8,6 +8,8 @@ use App\Models\Appointment;
 use App\Models\Quiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\AppointmentAssignmentService;
+
 
 class AdminController extends Controller
 {
@@ -32,6 +34,10 @@ class AdminController extends Controller
             'completedQuizzes' => UserQuiz::whereNotNull('completed_at')->count(),
             'passedQuizzes' => UserQuiz::where('passed', true)->count(),
             'pendingAppointments' => Appointment::where('status', 'scheduled')->count() ?? 0,
+            'activeQuiz' => Quiz::where('is_active', true)->first(),
+            'quizCount' => Quiz::count(),
+            'totalQuestions' => DB::table('questions')->count(),
+            'avgQuizScore' => UserQuiz::whereNotNull('completed_at')->avg('score'),
         ];
 
         // Recent candidates
@@ -63,6 +69,38 @@ class AdminController extends Controller
         ));
     }
 
+    public function assignStaff(Request $request, $candidateId)
+{
+    $request->validate([
+        'staff_id' => 'required|exists:users,id',
+        'scheduled_at' => 'required|date|after:now',
+        'location' => 'required|string',
+    ]);
+    
+    $candidate = User::findOrFail($candidateId);
+    
+    // Check if candidate has passed the quiz
+    $passedQuiz = UserQuiz::where('user_id', $candidateId)
+        ->where('passed', true)
+        ->exists();
+        
+    if (!$passedQuiz) {
+        return back()->with('error', 'Candidate must pass the online assessment first.');
+    }
+    
+    // Create or update appointment
+    Appointment::updateOrCreate(
+        ['user_id' => $candidateId, 'status' => 'scheduled'],
+        [
+            'staff_id' => $request->staff_id,
+            'scheduled_at' => $request->scheduled_at,
+            'location' => $request->location,
+            'notes' => $request->notes,
+        ]
+    );
+    
+    return back()->with('status', 'Appointment scheduled successfully.');
+}
     /**
      * Afficher la liste des candidats
      */
@@ -170,13 +208,54 @@ class AdminController extends Controller
     {
         $quiz->is_active = !$quiz->is_active;
         $quiz->save();
-
-        // Si on active ce quiz, désactiver tous les autres
+        
+        // If activating this quiz, deactivate all others
         if ($quiz->is_active) {
             Quiz::where('id', '!=', $quiz->id)->update(['is_active' => false]);
         }
-
+        
         return redirect()->route('admin.quizzes')
-            ->with('status', 'Statut du quiz mis à jour.');
+            ->with('status', 'Quiz status updated successfully.');
     }
+
+    /**
+ * Automatically assign candidates to staff
+ */
+public function autoAssignCandidates(Request $request)
+{
+    try {
+        // Create service manually
+        $service = new \App\Services\AppointmentAssignmentService();
+        
+        // Get assignments
+        $assignments = $service->autoAssignCandidates();
+        
+        // For debugging - temporarily return a simple response instead of redirecting
+        return response()->json([
+            'success' => true,
+            'assignments' => count($assignments),
+            'message' => count($assignments) > 0 ? 
+                         count($assignments) . ' candidates assigned successfully.' : 
+                         'No candidates could be assigned.'
+        ]);
+        
+        // Original redirect code (commented out for debugging)
+        /*
+        if (count($assignments) > 0) {
+            return redirect()->route('admin.appointments')
+                ->with('status', count($assignments) . ' candidates have been successfully assigned to staff members.');
+        }
+        
+        return redirect()->route('admin.appointments')
+            ->with('error', 'No candidates could be assigned at this time. Please check staff availability.');
+        */
+    } catch (\Exception $e) {
+        // Return error details for debugging
+        return response()->json([
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ], 500);
+    }
+}
 }

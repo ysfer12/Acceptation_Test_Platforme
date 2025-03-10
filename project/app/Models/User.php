@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\UserQuiz;
+use App\Models\Appointment;
+use App\Models\Evaluation;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -81,4 +84,21 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->status === 'rejected';
     }
+    // Add this method to your User model
+public function userQuizzes()
+{
+    return $this->hasMany(UserQuiz::class);
+}
+
+// Also add this relationship for appointments if it doesn't exist
+public function appointments()
+{
+    return $this->hasMany(Appointment::class);
+}
+
+// And add this relationship for evaluations if it doesn't exist
+public function evaluations()
+{
+    return $this->hasMany(Evaluation::class);
+}
 }

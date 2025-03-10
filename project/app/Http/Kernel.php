@@ -66,6 +66,7 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\CheckRole::class,
         'user.status' => \App\Http\Middleware\CheckUserStatus::class,
         'profile.complete' => \App\Http\Middleware\CheckProfileComplete::class,
-
+        'check.active.quiz' => \App\Http\Middleware\CheckActiveQuiz::class,
+        'check.user.status' => \App\Http\Middleware\CheckUserStatus::class,
     ];
 }

@@ -20,20 +20,21 @@ class AdminQuizController extends Controller
     /**
      * Store a new quiz
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'time_limit' => 'required|integer|min:1',
-            'passing_score' => 'required|integer|min:1|max:100',
-        ]);
 
-        $quiz = Quiz::create($validated);
+     public function store(Request $request)
+{
+    $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'description' => 'required|string',
+        'time_limit' => 'required|integer|min:1|max:180',
+        'passing_score' => 'required|integer|min:1|max:100',
+    ]);
 
-        return redirect()->route('admin.quizzes')
-            ->with('status', 'Quiz créé avec succès.');
-    }
+    $quiz = Quiz::create($validated);
+
+    return redirect()->route('admin.quizzes.questions', $quiz)
+        ->with('status', 'Quiz created successfully. Now add some questions!');
+}
 
     /**
      * Show the quiz edit form
@@ -92,9 +93,9 @@ class AdminQuizController extends Controller
             'option_c' => 'required|string',
             'option_d' => 'required|string',
             'correct_answer' => 'required|in:A,B,C,D',
-            'points' => 'required|integer|min:1',
+            'points' => 'required|integer|min:1|max:10',
         ]);
-
+    
         // Convert options to JSON format
         $options = [
             'A' => $validated['option_a'],
@@ -102,7 +103,7 @@ class AdminQuizController extends Controller
             'C' => $validated['option_c'],
             'D' => $validated['option_d'],
         ];
-
+    
         Question::create([
             'quiz_id' => $quiz->id,
             'question_text' => $validated['question_text'],
@@ -110,11 +111,11 @@ class AdminQuizController extends Controller
             'correct_answer' => $validated['correct_answer'],
             'points' => $validated['points'],
         ]);
-
+    
         return redirect()->route('admin.quizzes.questions', $quiz)
-            ->with('status', 'Question ajoutée avec succès.');
+            ->with('status', 'Question added successfully.');
     }
-
+    
     /**
      * Delete a question
      */

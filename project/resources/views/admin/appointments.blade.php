@@ -229,6 +229,14 @@
         </div>
     </div>
 
+    <div class="flex justify-end mb-4">
+    <form action="{{ route('admin.auto.assign.candidates') }}" method="POST" class="inline">
+        @csrf
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+            Auto-Assign Candidates
+        </button>
+    </form>
+</div>
     <script>
         // Appointment edit modal functionality
         document.addEventListener('DOMContentLoaded', function() {
